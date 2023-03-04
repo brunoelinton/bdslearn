@@ -20,18 +20,22 @@ public class UserService implements UserDetailsService {
 
 	private static Logger logger = LoggerFactory.getLogger(UserService.class);
 	
+	final AuthService authService;
     final UserRepository userRepository;
+    
+	public UserService(AuthService authService, UserRepository userRepository) {
+		this.authService = authService;
+		this.userRepository = userRepository;
+	}
     
     @Transactional(readOnly = true)
     public UserDTO findById(Long id) {
+    	
+    	authService.validateSelfOrAdmin(id);
         Optional<User> obj = userRepository.findById(id);
         User entity = obj.orElseThrow(() -> new ResourceNotFoundException("User not found."));
         return new UserDTO(entity);
     }
-    
-    public UserService(UserRepository userRepository) {
-		this.userRepository = userRepository;
-	}
 
 	@Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
