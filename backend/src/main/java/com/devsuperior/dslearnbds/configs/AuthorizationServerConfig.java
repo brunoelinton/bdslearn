@@ -5,6 +5,7 @@ import java.util.Arrays;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.config.annotation.configurers.ClientDetailsServiceConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configuration.AuthorizationServerConfigurerAdapter;
@@ -34,18 +35,26 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
     final JwtAccessTokenConverter accessTokenConverter;
     final JwtTokenStore tokenStore;
     final AuthenticationManager authenticationManager;
+    final UserDetailsService userDetailsService;
 
     final JwtTokenEnhancer tokenEnhancer;
 
-    public AuthorizationServerConfig(BCryptPasswordEncoder passwordEncoder, JwtAccessTokenConverter accessTokenConverter, JwtTokenStore tokenStore, AuthenticationManager authenticationManager, JwtTokenEnhancer tokenEnhancer) {
-        this.passwordEncoder = passwordEncoder;
-        this.accessTokenConverter = accessTokenConverter;
-        this.tokenStore = tokenStore;
-        this.authenticationManager = authenticationManager;
-        this.tokenEnhancer = tokenEnhancer;
-    }
 
-    @Override
+
+    public AuthorizationServerConfig(BCryptPasswordEncoder passwordEncoder,
+			JwtAccessTokenConverter accessTokenConverter, JwtTokenStore tokenStore,
+			AuthenticationManager authenticationManager, UserDetailsService userDetailsService,
+			JwtTokenEnhancer tokenEnhancer) {
+		super();
+		this.passwordEncoder = passwordEncoder;
+		this.accessTokenConverter = accessTokenConverter;
+		this.tokenStore = tokenStore;
+		this.authenticationManager = authenticationManager;
+		this.userDetailsService = userDetailsService;
+		this.tokenEnhancer = tokenEnhancer;
+	}
+
+	@Override
     public void configure(AuthorizationServerSecurityConfigurer security) throws Exception {
         security.tokenKeyAccess("permitAll()").checkTokenAccess("isAuthenticated()");
     }
@@ -56,8 +65,9 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
                 .withClient(clientId)
                 .secret(passwordEncoder.encode(clientSecret))
                 .scopes("read", "write")
-                .authorizedGrantTypes("password")
-                .accessTokenValiditySeconds(jwtDuration);
+                .authorizedGrantTypes("password", "refresh_token")
+                .accessTokenValiditySeconds(jwtDuration)
+                .refreshTokenValiditySeconds(jwtDuration);
     }
 
     @Override
@@ -67,6 +77,7 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
         endpoints.authenticationManager(authenticationManager)
                 .tokenStore(tokenStore)
                 .accessTokenConverter(accessTokenConverter)
-                .tokenEnhancer(chain);
+                .tokenEnhancer(chain)
+                .userDetailsService(userDetailsService);
     }
 }
